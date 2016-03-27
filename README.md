@@ -154,5 +154,3 @@ bin/concurrent_user_tester
 This test will create a file of 1000 tickets and 50 users that will
 perform random actions concurrently. The test ends when all the 
 tickets have been purchased.
-
-# java_training_project2
