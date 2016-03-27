@@ -1,0 +1,4 @@
+#!/bin/sh
+
+export CLASSPATH_PREFIX=target/test-classes:target/classes
+sh target/appassembler/bin/concurrent_user_tester $*
