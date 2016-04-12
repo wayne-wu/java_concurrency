@@ -4,6 +4,7 @@ import com.yahoo.javatraining.project2.Ticket;
 import com.yahoo.javatraining.project2.TicketManagerException;
 import com.yahoo.javatraining.project2.TicketStatusCode;
 
+import javax.validation.constraints.NotNull;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -29,7 +30,7 @@ public class Storage {
      *
      * @param file Non-null file of tickets. The format is described in the class docs.
      */
-    public Storage(File file) {
+    public Storage(@NotNull File file) {
         this.file = file;
     }
 
@@ -37,10 +38,10 @@ public class Storage {
      * Returns the list of tickets currently stored in the file.
      * This method is not thread-safe.
      *
-     * @return Non-null list of Ticket objects.
+     * @return List of Ticket objects.
      * @throws TicketManagerException If the retrieval of the tickets did not succeed.
      */
-    public List<Ticket> getTickets() throws TicketManagerException {
+    public @NotNull List<Ticket> getTickets() throws TicketManagerException {
         List<Ticket> results = new ArrayList<>();
         try (Scanner sc = new Scanner(file)) {
             while (sc.hasNext()) {
@@ -56,10 +57,10 @@ public class Storage {
      * Updates the storage with the state of the supplied Ticket object.
      * This method is not thread-safe.
      *
-     * @param ticket Non-null ticket.
+     * @param ticket A ticket instance.
      * @throws TicketManagerException If the update did not succeed.
      */
-    public void update(Ticket ticket) throws TicketManagerException {
+    public void update(@NotNull Ticket ticket) throws TicketManagerException {
         File newFile = new File(file.toString() + ".new");
         Scanner sc = null;
         try {
@@ -92,10 +93,10 @@ public class Storage {
 
     /**
      * Returns a ticket object given the formatted line.
-     * @param line Non-null line.
-     * @return Non-null ticket object.
+     * @param line A line from a ticket file.
+     * @return A ticket instance.
      */
-    private Ticket deserialize(String line) {
+    private @NotNull Ticket deserialize(@NotNull String line) {
         Ticket ticket = null;
         String[] parts = line.split(" ");
         if (parts.length == 0 || parts.length == 2 || parts.length > 5) {
@@ -122,10 +123,10 @@ public class Storage {
 
     /**
      * Converts the state in a Ticket object into a string.
-     * @param ticket Non-null ticket object.
-     * @return Non-null string representing the supplied ticket.
+     * @param ticket A ticket instance.
+     * @return A string representing the supplied ticket.
      */
-    private String serialize(Ticket ticket) {
+    private @NotNull String serialize(@NotNull Ticket ticket) {
         switch (ticket.getStatus()) {
             case AVAILABLE:
                 return String.format("%s", ticket.getId());

@@ -1,31 +1,33 @@
 package com.yahoo.javatraining.project2;
 
+import javax.validation.constraints.NotNull;
+
 /**
  * This is the main exception thrown by the TicketManager library.
  */
 public class TicketManagerException extends Exception {
     /**
      * Constructs an exception with just message.
-     * @param message Non-null exception messsage.
+     * @param message An exception messsage.
      */
-    public TicketManagerException(String message) {
+    public TicketManagerException(@NotNull String message) {
         super(message);
     }
 
     /**
      * Wraps another exception.
-     * @param cause Non-null exception.
+     * @param cause An exception.
      */
-    public TicketManagerException(Throwable cause) {
+    public TicketManagerException(@NotNull Throwable cause) {
         super(cause);
     }
 
     /**
      * Wraps another exception with a more detailed exception message.
-     * @param message Non-null exception message.
-     * @param cause Non-null exception.
+     * @param message An exception message.
+     * @param cause An exception.
      */
-    public TicketManagerException(String message, Throwable cause) {
+    public TicketManagerException(@NotNull String message, @NotNull Throwable cause) {
         super(message, cause);
     }
 }
