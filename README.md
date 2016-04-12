@@ -1,25 +1,24 @@
 Java Training Project 2
 =======================
 
-In this project, you will create a multi-threaded library for buying 
+In this project, you will create a multi-threaded library for buying
 tickets. Some of the things you will learn, include:
 
 * how to create concurrent tasks using Executors.
 * how to execute a task periodically.
 * how to use locks to protect data that is accessed by multiple threads.
 * testing multi-threaded code with a multi-threaded test.
-* when building a new feature, it is good practice to first work out 
+* when building a new feature, it is good practice to first work out
   the interfaces before starting to write code. This project has already
   defined the library's interface which demonstrates the necessary detail
   needed for a quality implementation. We expect that you do the same
   for any internal interfaces (i.e. classes) in your implementation.
-  
-  
+
 ### Submission
 
 To do this exercise, first fork the project. Then when ready to submit,
 send a PR.
-  
+
 You are expected to submit a production-quality program. It must be
 fully documented and formatted using the company's standard Java
 coding conventions, which is defined [here](http://yo/javastandard)
@@ -30,7 +29,7 @@ Intellij is good enough. We
 intend to do a pretty strict review on both the code and the
 documentation to ensure that all participants learn the best
 practices.
-  
+
 ### Functional Requirements
 
 Create a library to facilitate the purchase of tickets.
@@ -42,11 +41,11 @@ the storage system.
 
 When a user purchases a ticket, the library should update the status
 of the ticket in the storage system and call a special webservice to
-purchase the ticket (which, in real life, would 
+purchase the ticket (which, in real life, would
 validate the user and send a confirmation email).
-The webservice is somewhat slow but fortunately, can be called 
+The webservice is somewhat slow but fortunately, can be called
 with up to 5 concurrent requests. The library should take advantage
-of this feature and minimize latency by creating multiple 
+of this feature and minimize latency by creating multiple
 threads to call the webservice.
 
 Tickets can be in one of 4 states:
@@ -64,7 +63,7 @@ Tickets can be in one of 4 states:
   will be set to this state.
 
 The library will be given the following input:
-* An instance to the ticket storage system. 
+* An instance to the ticket storage system.
 * An instance of a webservice for buying the tickets.
 * An expiration time. If a ticket is held longer than this expiration
 time, the ticket will be automatically cancelled.
@@ -79,7 +78,7 @@ time, the ticket will be automatically cancelled.
   java.util.concurrent library has everything you need to deal with
   multi-threaded coding.
 * With the latest version of Java, there's less need to create
-  Thread objects. For this exercise, use the 
+  Thread objects. For this exercise, use the
   java.util.conccurrent.Executors class instead
   defining Thread objects.
 * Use Storage.getTickets() to load all the tickets into memory and
@@ -94,9 +93,6 @@ time, the ticket will be automatically cancelled.
 * Tickets must be expired in less than 2 times the specified expiration
   period.
 * To generate a transaction id, you can use: UUID.randomUUID().toString().
-
-
-  
 
 ### TicketManager Interface
 
@@ -125,6 +121,15 @@ public class TicketManager {
     public void shutdown()
 }
 ```
+
+### Tutorials
+
+Here are some links to some of the concepts and libraries that you will need to complete this exercise:
+
+* [Locks and Condition Variables](http://www.math.uni-hamburg.de/doc/java/tutorial/essential/threads/explicitlocks.html)
+* [Executor Service](http://tutorials.jenkov.com/java-util-concurrent/executorservice.html)
+* [Java 8 Concurrency Intro](http://winterbe.com/posts/2015/04/07/java8-concurrency-tutorial-thread-executor-examples/)
+* [Java Tutorial: Concurrency](https://docs.oracle.com/javase/tutorial/essential/concurrency/)
 
 
 ### Unit Tests
