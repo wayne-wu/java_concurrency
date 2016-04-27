@@ -89,7 +89,7 @@ public class TicketManager {
      * @param userId A user id.
      * @param ticketId A ticket id.
      * @param holdTransId A hold transaction id.
-     * @throws IllegalStateException Is thrown if the cancel fails.
+     * @throws IllegalStateException Is thrown if the buy fails.
      */
     public String buy(@NotNull String userId, @NotNull String ticketId, @NotNull String holdTransId)
           throws TicketManagerException, InterruptedException {
@@ -103,13 +103,5 @@ public class TicketManager {
      * @throws InterruptedException If the thread is interrupted.
      */
     public void awaitSoldOut() throws InterruptedException {
-    }
-
-    /*
-     * Returns a Ticket object from the map. Throws an exception if there is no ticket with the id.
-     * This method is not threads-safe.
-     */
-    private @NotNull Ticket getTicket(@NotNull String id) throws TicketManagerException {
-        return null;
     }
 }

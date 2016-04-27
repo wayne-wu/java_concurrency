@@ -87,12 +87,15 @@ time, the ticket will be automatically cancelled.
   methods are thread-safe).
 * When calling the buy webservice, you MUST not wait for the results
   while holding the global lock. This would block all other ticket 
-  change requests and kill your concurency. Release the lock before
+  change requests and kill your concurrency. Release the lock before
   calling the service and then reacquire the lock after the service
   call returns.
+* When starting up, if there are any tickets in the BUYING state,
+  finish the purchase of those tickets by calling the webservice.
 * Tickets must be expired in less than 2 times the specified expiration
-  period.
-* To generate a transaction id, you can use: UUID.randomUUID().toString().
+  period. E.g. if the expiration time is 10 minutes, then the expiration
+  must happen within 20 minutes.
+* To generate a transaction id, use UUID.randomUUID().toString().
 
 ### TicketManager Interface
 

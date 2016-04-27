@@ -2,8 +2,6 @@ package com.yahoo.javatraining.project2;
 
 import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * This class represents a ticket. Ticket objects are produced and consumed by the storage system.
@@ -13,13 +11,19 @@ public class Ticket {
 
     private String userId;
 
+    // Is non-null if the ticket is currently being held. Null otherwise.
     private String holdTransId;
 
+    // Set to non-null when the ticket is being purchased.
     private String buyTransId;
 
     private TicketStatusCode status = TicketStatusCode.AVAILABLE;
 
+    // Contains the time of the hold. If the ticket is not held, the value is 0.
     private long holdTime;
+
+    // Contains the time the ticket was purchased. If the ticket has not been purchased, the value is 0.
+    private long buyTime;
 
     /**
      * Constructs a Ticket object with the unique ticket id.
@@ -119,6 +123,25 @@ public class Ticket {
      * @param holdTime Possibly-zero timestamp.
      */
     public void setHoldTime(long holdTime) {
+        this.holdTime = holdTime;
+    }
+
+    /**
+     * Returns the UTC timestamp of the time that a purchase was initiated on the ticket.
+     *  Zero is returned if no purchase was initiated on the ticket.
+     *
+     * @return The hold timestamp.
+     */
+    public long getBuyingTime() {
+        return holdTime;
+    }
+
+    /**
+     * Sets the timestamp when the ticket is being purchased.
+     *
+     * @param holdTime Possibly-zero timestamp.
+     */
+    public void setBuyingTime(long holdTime) {
         this.holdTime = holdTime;
     }
 
