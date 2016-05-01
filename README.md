@@ -19,7 +19,7 @@ tickets. Some of the things you will learn, include:
 ### Submission
 
 To do this exercise, first fork the project. Then when ready to submit,
-send a PR.
+send a single PR with all the changes.
 
 You are expected to submit a production-quality program. It must be
 fully documented and formatted using the company's standard Java
