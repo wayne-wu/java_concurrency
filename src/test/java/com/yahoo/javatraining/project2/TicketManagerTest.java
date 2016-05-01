@@ -9,6 +9,8 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Scanner;
 
 /**
@@ -19,6 +21,8 @@ public class TicketManagerTest {
 
     @BeforeMethod
     public void beforeMethod() throws Exception {
+        WebService.randomFailures = false;
+
         // Generate file of tickets
         try (FileWriter wr = new FileWriter(file)) {
             for (int i = 0; i < 10; i++) {
@@ -40,7 +44,17 @@ public class TicketManagerTest {
     }
 
     @Test
-    public void alreadHeld() throws Exception {
+    public void alreadyHeld() throws Exception {
+        try {
+            tmgr.hold("user1", "0");
+            tmgr.hold("user1", "0");
+        } catch (TicketManagerException e) {
+            Assert.fail("unexpected exception", e);
+        }
+    }
+
+    @Test
+    public void heldByAnother() throws Exception {
         try {
             tmgr.hold("user1", "0");
             tmgr.hold("user2", "0");
@@ -60,8 +74,8 @@ public class TicketManagerTest {
     public void cancelWithoutHold() throws Exception {
         try {
             tmgr.cancel("user1", "1", "junk");
-            Assert.fail("expected exception");
         } catch (TicketManagerException e) {
+            Assert.fail("unexpected exception", e);
         }
     }
 

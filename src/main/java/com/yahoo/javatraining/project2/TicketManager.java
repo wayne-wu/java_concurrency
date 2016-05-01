@@ -4,14 +4,7 @@ import com.yahoo.javatraining.project2.util.Storage;
 import com.yahoo.javatraining.project2.util.WebService;
 
 import javax.validation.constraints.NotNull;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.*;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.*;
 
 /**
  * The ticket manager is used to manage the purchase of tickets.
@@ -31,11 +24,11 @@ public class TicketManager {
      * @param webservice A service instance to use for purchases.
      */
     public TicketManager(long expireTimeMs, @NotNull Storage storage, @NotNull WebService webservice)
-          throws TicketManagerException {
+            throws TicketManagerException {
     }
 
     /**
-     * Rejects further calls to this class and shutdown on-going concurrent tasks.
+     * Rejects further calls to this class and shutdowns on-going concurrent tasks.
      * The object is no longer usable after this call.
      *
      * @throws InterruptedException If the shutdown was interrupted.
@@ -43,8 +36,14 @@ public class TicketManager {
     public void shutdown() throws InterruptedException {
     }
 
+    public List<Ticket> tickets() {
+        return null;
+    }
+
     /**
-     * Returns the number of available tickets that can be held. This method is thread-safe.
+     * Returns the number of available tickets that are in the AVAILABLE and HELD states.
+     * If greater than 0, it means that the tickets have not been sold out yet.
+     * This method is thread-safe.
      *
      * @return Count of available tickets.
      */
@@ -55,6 +54,8 @@ public class TicketManager {
     /**
      * Holds the ticket. More specifically, sets the status to be HELD, generates a hold transaction id, and sets
      * the hold time. This method is thread-safe.
+     * <p>
+     * The hold trans id is returned if the ticket is already being held.
      *
      * @param userId   A user id.
      * @param ticketId A ticket id.
@@ -71,14 +72,17 @@ public class TicketManager {
      * Cancels a held ticket. The ticket's state becomes AVAILABLE, the hold transaction id is cleared, and the
      * hold time is cleared. The userId and holdTransId must match the persisted values or the cancel will fail.
      * This method is thread-safe.
+     * <p>
+     * Returns false if the ticket has already been cancelled.
      *
-     * @param userId A user id.
-     * @param ticketId A ticket id.
+     * @param userId      A user id.
+     * @param ticketId    A ticket id.
      * @param holdTransId A hold transaction id.
+     * @return true If the cancel succeeded.
      * @throws IllegalStateException Is thrown if the cancel fails.
      */
-    public void cancel(@NotNull String userId, @NotNull String ticketId, @NotNull String holdTransId)
-          throws TicketManagerException {
+    public boolean cancel(@NotNull String userId, @NotNull String ticketId, @NotNull String holdTransId) throws TicketManagerException {
+        return false;
     }
 
     /**
@@ -86,22 +90,26 @@ public class TicketManager {
      * The userId and holdTransId must match the persisted values or the buy will fail.
      * This method is thread-safe.
      *
-     * @param userId A user id.
-     * @param ticketId A ticket id.
+     * @param userId      A user id.
+     * @param ticketId    A ticket id.
      * @param holdTransId A hold transaction id.
+     * @return The buy transaction id.
      * @throws IllegalStateException Is thrown if the buy fails.
      */
-    public String buy(@NotNull String userId, @NotNull String ticketId, @NotNull String holdTransId)
-          throws TicketManagerException, InterruptedException {
+    public
+    @NotNull
+    String buy(@NotNull String userId, @NotNull String ticketId, @NotNull String holdTransId)
+            throws TicketManagerException, InterruptedException {
         return null;
     }
 
     /**
-     * Blocks until there are no more tickets available.
+     * Blocks until all tickets are in the BOUGHT state.
+     * The caller should not shutdown this instance until this method returns.
      * This method is thread-safe.
      *
      * @throws InterruptedException If the thread is interrupted.
      */
-    public void awaitSoldOut() throws InterruptedException {
+    public void awaitAllBought() throws InterruptedException {
     }
 }

@@ -8,6 +8,8 @@ tickets. Some of the things you will learn, include:
 * how to execute a task periodically.
 * how to use locks to protect data that is accessed by multiple threads.
 * testing multi-threaded code with a multi-threaded test.
+* how to write code that can complete transactions that were incomplete
+  due to a crash.
 * when building a new feature, it is good practice to first work out
   the interfaces before starting to write code. This project has already
   defined the library's interface which demonstrates the necessary detail
@@ -44,7 +46,7 @@ of the ticket in the storage system and call a special webservice to
 purchase the ticket (which, in real life, would
 validate the user and send a confirmation email).
 The webservice is somewhat slow but fortunately, can be called
-with up to 5 concurrent requests. The library should take advantage
+with up to 10 concurrent requests. The library should take advantage
 of this feature and minimize latency by creating multiple
 threads to call the webservice.
 
@@ -79,23 +81,28 @@ time, the ticket will be automatically cancelled.
   multi-threaded coding.
 * With the latest version of Java, there's less need to create
   Thread objects. For this exercise, use the
-  java.util.conccurrent.Executors class instead
+  java.util.concurrent.Executors class instead of
   defining Thread objects.
 * Use Storage.getTickets() to load all the tickets into memory and
-  use a global lock to synchronize the state changes to the tickets and
-  to calls to the Storage class (since none of the Storage 
+  use a global lock to synchronize the state changes to the ticket objects
+  and to calls to the Storage class (since none of the Storage 
   methods are thread-safe).
 * When calling the buy webservice, you MUST not wait for the results
   while holding the global lock. This would block all other ticket 
-  change requests and kill your concurrency. Release the lock before
+  change requests and reduce your concurrency. Release the lock before
   calling the service and then reacquire the lock after the service
   call returns.
 * When starting up, if there are any tickets in the BUYING state,
   finish the purchase of those tickets by calling the webservice.
+* Any tickets that were not successfully purchased by the webservice,
+  should be retried every 5 seconds.
 * Tickets must be expired in less than 2 times the specified expiration
   period. E.g. if the expiration time is 10 minutes, then the expiration
   must happen within 20 minutes.
 * To generate a transaction id, use UUID.randomUUID().toString().
+* In general, your code must be able to tolerate crashes and complete
+  all the transactions. The concurrent user test will "crash" every
+  5 seconds to help ensure your logic properly recovers after a crash.
 
 ### TicketManager Interface
 

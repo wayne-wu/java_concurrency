@@ -22,8 +22,8 @@ public class Ticket {
     // Contains the time of the hold. If the ticket is not held, the value is 0.
     private long holdTime;
 
-    // Contains the time the ticket was purchased. If the ticket has not been purchased, the value is 0.
-    private long buyTime;
+    // Contains the time when the ticket status became BUYING. If the ticket has not been purchased, the value is 0.
+    private long buyingTime;
 
     /**
      * Constructs a Ticket object with the unique ticket id.
@@ -128,21 +128,21 @@ public class Ticket {
 
     /**
      * Returns the UTC timestamp of the time that a purchase was initiated on the ticket.
-     *  Zero is returned if no purchase was initiated on the ticket.
+     * 0 is returned if no purchase was initiated on the ticket.
      *
-     * @return The hold timestamp.
+     * @return The buying time timestamp.
      */
     public long getBuyingTime() {
-        return holdTime;
+        return buyingTime;
     }
 
     /**
      * Sets the timestamp when the ticket is being purchased.
      *
-     * @param holdTime Possibly-zero timestamp.
+     * @param buyingTime Possibly-zero timestamp.
      */
-    public void setBuyingTime(long holdTime) {
-        this.holdTime = holdTime;
+    public void setBuyingTime(long buyingTime) {
+        this.buyingTime = buyingTime;
     }
 
     /**
