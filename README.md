@@ -3,16 +3,13 @@ Java Training Project 2
 
 In this project, you will create a multi-threaded library 
 that manages the purchase of tickets. The library must manage
-ticket state stored in a file and invoking a webservice to complete
-a purchase transaction.
-
-Your goal is to build a robust library that can handle concurrent
-requests as well as tolerate crashes.
+ticket state stored in a file and invoke a webservice to complete
+a purchase transaction. Your goal is to build a robust library 
+that can handle concurrent requests as well as tolerate crashes.
 
 Some of the things you will learn, include:
 
-* achieving resilience between storage and a webservice 
-  without a global lock.
+* achieving resilience between a storage system and a webservice.
 * using locks to protect data accessed by multiple threads.
 * creating concurrent and periodic tasks using Executors.
 * testing multi-threaded code with a multi-threaded test.
@@ -31,18 +28,18 @@ send a single PR with all the changes.
 
 You are expected to submit a production-quality program. It must be
 fully documented and formatted using the company's standard Java
-coding conventions, which is defined [here](http://yo/javastandard)
-with one exception: the indent is 4 spaces rather than 2. The
+coding conventions, which is defined 
+[here](https://google.github.io/styleguide/javaguide.html)
+with one exception: the indent should be 4 spaces rather than 2. The
 standards group is working on config files for the IDE's and build
 tools. For now, using shift-control-F in Eclipse or option-cmd-L in
 Intellij is good enough. We
-intend to do a pretty strict review on both the code and the
+will do a very strict review on both the code and the
 documentation to ensure that all participants learn the best
 practices.
 
 ### Functional Requirements
 
-Create a library to facilitate the purchase of tickets.
 The library should be able to handle the purchase of up to 100,000
 tickets. The tickets are stored in a system that
 provides no transactions and is not thread-safe.
