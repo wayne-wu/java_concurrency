@@ -1,20 +1,28 @@
 Java Training Project 2
 =======================
 
-In this project, you will create a multi-threaded library for buying
-tickets. Some of the things you will learn, include:
+In this project, you will create a multi-threaded library 
+that manages the purchase of tickets. The library must manage
+ticket state stored in a file and invoking a webservice to complete
+a purchase transaction.
 
-* how to create concurrent tasks using Executors.
-* how to execute a task periodically.
-* how to use locks to protect data that is accessed by multiple threads.
+Your goal is to build a robust library that can handle concurrent
+requests as well as tolerate crashes.
+
+Some of the things you will learn, include:
+
+* achieving resilience between storage and a webservice 
+  without a global lock.
+* using locks to protect data accessed by multiple threads.
+* creating concurrent and periodic tasks using Executors.
 * testing multi-threaded code with a multi-threaded test.
-* how to write code that can complete transactions that were incomplete
-  due to a crash.
-* when building a new feature, it is good practice to first work out
-  the interfaces before starting to write code. This project has already
-  defined the library's interface which demonstrates the necessary detail
-  needed for a quality implementation. We expect that you do the same
-  for any internal interfaces (i.e. classes) in your implementation.
+* API-first development. This project provides a complete interface
+  in which you provide the implementation. The interface has been
+  designed and documented at a level that demonstrates the type of 
+  quality we would like to see in the code you write in all 
+  your future projects. Moreover, we hope this exercise provides
+  an example of the best practice of developing interfaces
+  before writing code.
 
 ### Submission
 
@@ -36,8 +44,8 @@ practices.
 
 Create a library to facilitate the purchase of tickets.
 The library should be able to handle the purchase of up to 100,000
-tickets. Unfortunately, the tickets are stored in a system that
-provides no transactions and cannot be accessed concurrently.
+tickets. The tickets are stored in a system that
+provides no transactions and is not thread-safe.
 Therefore the library must properly synchronize all access to
 the storage system.
 
