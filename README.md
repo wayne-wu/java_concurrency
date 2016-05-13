@@ -23,8 +23,11 @@ Some of the things you will learn, include:
 
 ### Submission
 
-To do this exercise, first fork the project. Then when ready to submit,
-send a single PR with all the changes.
+To do this exercise, first fork the project and create a branch called
+devel. Do your work in the devel branch.
+Then when ready to submit, squash all of your changes into a single 
+commit, so that we can review all the changes more easily. Finally,
+create a PR from your devel branch to your master branch and notify us.
 
 You are expected to submit a production-quality program. It must be
 fully documented and formatted using the company's standard Java
