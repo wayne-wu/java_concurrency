@@ -27,12 +27,12 @@ public class TicketManager {
     private Storage storage;
     private long expireTimeMs;
     private WebService webservice;
-    private boolean isShutDown;
     private int availableTickets;
 
     private ExecutorService executor; //for executing webservice requests
     private ScheduledExecutorService timer; //for timing and resetting expired held tickets
     private ScheduledExecutorService monitor; //for monitoring the quantities
+    private ExecutorService finisher;
     private BlockingQueue<Ticket> heldTickets;
     private HashMap<String, Ticket> tickets;
     private Lock global = new ReentrantLock();
@@ -50,14 +50,12 @@ public class TicketManager {
         this.storage = storage;
         this.expireTimeMs = expireTimeMs;
         this.webservice = webservice;
-        this.isShutDown = false;
         this.executor = Executors.newFixedThreadPool(5);
         this.timer = Executors.newScheduledThreadPool(1);
+        this.monitor = Executors.newSingleThreadScheduledExecutor();
+        this.finisher = Executors.newCachedThreadPool();
         this.heldTickets = new LinkedBlockingQueue<>();
         this.tickets = new HashMap<>();
-        for(Ticket tik : storage.getTickets()){
-            tickets.put(tik.getId(), tik);
-        }
 
         Runnable resetTask = () -> {
             try{
@@ -73,10 +71,30 @@ public class TicketManager {
             }
         };
 
+        Runnable monitorTask = () -> {
+            System.out.println(availableCount());
+            if(availableCount() == 0){
+                condition.notify();
+            }
+        };
+
         long period = (expireTimeMs<10000) ? expireTimeMs/10 : 1000;
         timer.scheduleAtFixedRate(resetTask, expireTimeMs, period, TimeUnit.MILLISECONDS);
-        //PSEUDO: Complete all BUYING tickets
-        //use executor to run the task
+        //monitor.scheduleAtFixedRate(monitorTask, expireTimeMs, 1, TimeUnit.SECONDS); //Starts monitoring after 1 second
+
+        for(Ticket tik : storage.getTickets()){
+            tickets.put(tik.getId(), tik);
+            if(tik.getStatus()==TicketStatusCode.BUYING){
+                finisher.submit(()->{
+                   try{
+                       buy(tik.getUserId(), tik.getId(), tik.getHoldTransId());
+                   }catch(TicketManagerException|InterruptedException e){
+                       throw new IllegalStateException();
+                   }
+                });
+            }
+        }
+        this.availableTickets = tickets.size();
     }
 
     /**
@@ -87,9 +105,10 @@ public class TicketManager {
      */
     public void shutdown() throws InterruptedException {
         //Shut down all tasks
-        isShutDown = true;
         executor.shutdown();
         timer.shutdown();
+        monitor.shutdown();
+        finisher.shutdown();
     }
 
     public List<Ticket> tickets() {
@@ -104,12 +123,7 @@ public class TicketManager {
      * @return Count of available tickets.
      */
     public int availableCount() {
-        if(availableTickets==0){
-            condition.signal();
-            return availableTickets;
-        }else{
-            return availableTickets;
-        }
+        return availableTickets;
     }
 
     /**
@@ -148,7 +162,6 @@ public class TicketManager {
 
         try{
             heldTickets.put(ticket);
-            System.out.println("Added to queue");
         }catch(InterruptedException e){
             throw new TicketManagerException(e.getMessage());
         }
@@ -221,25 +234,20 @@ public class TicketManager {
         storage.update(ticket);
         storage_lock.unlock();
 
-        Future<String> future = executor.submit(() -> {
-            while(true){
-                try {
-                    return webservice.buy(ticketId, userId);
-                }
-                catch (IllegalStateException e) {
-                    Thread.sleep(5000);
-                }
-            }
-        });
+        Future<String> future = executor.submit(new BuyTask(ticketId, userId));
         String buyId = null;
         try{
             buyId = future.get();
         }catch(IllegalStateException|ExecutionException e) {
-            throw new TicketManagerException(e.getMessage());
+            throw new TicketManagerException("Purchase Failed...");
         }finally{
             global.lock();
             ticket.setStatus(TicketStatusCode.BOUGHT);
             ticket.setBuyTransId(buyId);
+            System.out.println(availableCount());
+            if(availableCount()==0){
+                condition.signal();
+            }
             global.unlock();
         }
         storage_lock.lock();
@@ -258,12 +266,41 @@ public class TicketManager {
      * @throws InterruptedException If the thread is interrupted.
      */
     public void awaitAllBought() throws InterruptedException {
-        condition.await();
-        shutdown();
+        global.lock();
+        while(availableCount()!=0){
+            condition.await();
+        }
+        global.unlock();
     }
 
 
-    public boolean cancel(@NotNull Ticket ticket) throws TicketManagerException{
+    private boolean cancel(@NotNull Ticket ticket) throws TicketManagerException{
         return cancel(ticket.getUserId(), ticket.getId(), ticket.getHoldTransId());
+    }
+
+    private String buy(@NotNull Ticket ticket) throws TicketManagerException,InterruptedException{
+        return buy(ticket.getUserId(), ticket.getId(), ticket.getHoldTransId());
+    }
+
+    private class BuyTask implements Callable<String>{
+
+        String ticketId;
+        String userId;
+
+        public BuyTask(String ticketId, String userId){
+            this.ticketId = ticketId;
+            this.userId = userId;
+        }
+
+        public String call() throws InterruptedException{
+            while(true){
+                try {
+                    return webservice.buy(ticketId, userId);
+                }
+                catch (IllegalStateException e) {
+                    Thread.sleep(5000);
+                }
+            }
+        }
     }
 }
