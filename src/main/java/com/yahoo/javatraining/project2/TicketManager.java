@@ -28,16 +28,19 @@ public class TicketManager {
     private long expireTimeMs;
     private WebService webservice;
     private int availableTickets;
+    private int runningTickets;
 
     private ExecutorService executor; //for executing webservice requests
     private ScheduledExecutorService timer; //for timing and resetting expired held tickets
     private ScheduledExecutorService monitor; //for monitoring the quantities
     private ExecutorService finisher;
     private BlockingQueue<Ticket> heldTickets;
+    private List<Ticket> unfinishedTickets;
     private HashMap<String, Ticket> tickets;
     private Lock global = new ReentrantLock();
     private Lock storage_lock = new ReentrantLock();
-    private Condition condition = global.newCondition();
+    private Lock count = new ReentrantLock();
+    private Condition condition = count.newCondition();
 
     /**
      * Constructs a ticket manager
@@ -52,10 +55,10 @@ public class TicketManager {
         this.webservice = webservice;
         this.executor = Executors.newFixedThreadPool(5);
         this.timer = Executors.newScheduledThreadPool(1);
-        this.monitor = Executors.newSingleThreadScheduledExecutor();
         this.finisher = Executors.newCachedThreadPool();
         this.heldTickets = new LinkedBlockingQueue<>();
         this.tickets = new HashMap<>();
+        this.unfinishedTickets = new ArrayList<>();
 
         Runnable resetTask = () -> {
             try{
@@ -64,6 +67,7 @@ public class TicketManager {
                     heldTickets.take(); //no longer held
                 }
                 if((System.currentTimeMillis()-ticket.getBuyingTime())>expireTimeMs){
+                    System.out.println("Held Ticket is expired");
                     cancel(heldTickets.take());
                 }
             }catch(TicketManagerException|InterruptedException e){
@@ -71,30 +75,29 @@ public class TicketManager {
             }
         };
 
-        Runnable monitorTask = () -> {
-            System.out.println(availableCount());
-            if(availableCount() == 0){
-                condition.notify();
-            }
-        };
-
         long period = (expireTimeMs<10000) ? expireTimeMs/10 : 1000;
         timer.scheduleAtFixedRate(resetTask, expireTimeMs, period, TimeUnit.MILLISECONDS);
-        //monitor.scheduleAtFixedRate(monitorTask, expireTimeMs, 1, TimeUnit.SECONDS); //Starts monitoring after 1 second
 
+        this.availableTickets=0;
         for(Ticket tik : storage.getTickets()){
             tickets.put(tik.getId(), tik);
+            if(tik.getStatus()==TicketStatusCode.HELD || tik.getStatus()==TicketStatusCode.AVAILABLE){
+                this.availableTickets++;
+            }
             if(tik.getStatus()==TicketStatusCode.BUYING){
-                finisher.submit(()->{
-                   try{
-                       buy(tik.getUserId(), tik.getId(), tik.getHoldTransId());
-                   }catch(TicketManagerException|InterruptedException e){
-                       throw new IllegalStateException();
-                   }
-                });
+                unfinishedTickets.add(tik);
             }
         }
-        this.availableTickets = tickets.size();
+        finisher.submit(()->{
+            for(Ticket tik : unfinishedTickets){
+                try{
+                    buy(tik);
+                }catch(TicketManagerException|InterruptedException e){
+                    throw new IllegalStateException();
+                }
+            }
+        });
+
     }
 
     /**
@@ -107,7 +110,6 @@ public class TicketManager {
         //Shut down all tasks
         executor.shutdown();
         timer.shutdown();
-        monitor.shutdown();
         finisher.shutdown();
     }
 
@@ -142,7 +144,7 @@ public class TicketManager {
     String hold(@NotNull String userId, @NotNull String ticketId) throws TicketManagerException {
         Ticket ticket = tickets.get(ticketId);
         if(ticket.getUserId()!=null && !userId.equals(ticket.getUserId())){
-            throw new TicketManagerException("Ticket is held by another user");
+            throw new TicketManagerException("Ticket is being held by another user");
         }
         if(ticket.getStatus() == TicketStatusCode.HELD){
             return ticket.getHoldTransId();
@@ -188,10 +190,12 @@ public class TicketManager {
         if(ticket.getHoldTransId()==null){
             return true;
         }
-        if(!holdTransId.equals(ticket.getHoldTransId()) || !userId.equals(ticket.getUserId())){
-            throw new TicketManagerException("Hold Transaction Id or User Id does not match");
+        if(!userId.equals(ticket.getUserId())){
+            throw new TicketManagerException("User ID does not match");
         }
-
+        if(!holdTransId.equals(ticket.getHoldTransId())){
+            throw new TicketManagerException("Hold Transaction ID does not match");
+        }
         global.lock();
         ticket.setStatus(TicketStatusCode.AVAILABLE);
         ticket.setHoldTransId(null);
@@ -221,18 +225,28 @@ public class TicketManager {
     String buy(@NotNull String userId, @NotNull String ticketId, @NotNull String holdTransId)
             throws TicketManagerException, InterruptedException {
         Ticket ticket = tickets.get(ticketId);
-        if(!userId.equals(ticket.getUserId()) || !holdTransId.equals(ticket.getHoldTransId())){
-            throw new TicketManagerException("User id or Hold transaction id does not match");
+        if(!userId.equals(ticket.getUserId())){
+            throw new TicketManagerException("User ID does not match");
         }
+        if(!holdTransId.equals(ticket.getHoldTransId())){
+            throw new TicketManagerException("Hold Transaction ID does not match");
+        }
+        if(ticket.getStatus()!=TicketStatusCode.BUYING){
+            global.lock();
+            ticket.setStatus(TicketStatusCode.BUYING);
+            global.unlock();
 
-        global.lock();
-        ticket.setStatus(TicketStatusCode.BUYING);
-        availableTickets--;
-        global.unlock();
+            storage_lock.lock();
+            storage.update(ticket);
+            storage_lock.unlock();
 
-        storage_lock.lock();
-        storage.update(ticket);
-        storage_lock.unlock();
+            count.lock();
+            availableTickets--;
+            if(availableCount()==0){
+                condition.signal();
+            }
+            count.unlock();
+        }
 
         Future<String> future = executor.submit(new BuyTask(ticketId, userId));
         String buyId = null;
@@ -244,10 +258,7 @@ public class TicketManager {
             global.lock();
             ticket.setStatus(TicketStatusCode.BOUGHT);
             ticket.setBuyTransId(buyId);
-            System.out.println(availableCount());
-            if(availableCount()==0){
-                condition.signal();
-            }
+            //System.out.println(availableCount());
             global.unlock();
         }
         storage_lock.lock();
@@ -266,11 +277,11 @@ public class TicketManager {
      * @throws InterruptedException If the thread is interrupted.
      */
     public void awaitAllBought() throws InterruptedException {
-        global.lock();
-        while(availableCount()!=0){
+        count.lock();
+        if(availableCount()>0){
             condition.await();
         }
-        global.unlock();
+        count.unlock();
     }
 
 
