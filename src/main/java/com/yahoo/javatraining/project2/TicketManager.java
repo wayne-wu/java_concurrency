@@ -9,9 +9,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * @author waynewu
+ */
 
 /**
  * The ticket manager is used to manage the purchase of tickets.
@@ -26,16 +31,16 @@ public class TicketManager {
 
     private Storage storage;
     private WebService webservice;
-    private int availableTickets; //available tickets (HELD + AVAILABLE)
+    private AtomicInteger availableTickets; //available tickets (HELD + AVAILABLE)
     private int unBoughtTickets; //Unbought Tickets (!BOUGHT)
     private ExecutorService executor; //for executing webservice requests
     private ScheduledExecutorService timer; //for timing and resetting expired held tickets
     private ExecutorService finisher; //for finishing the "buying" tickets
     private BlockingQueue<Ticket> heldTickets;
     private HashMap<String, Ticket> tickets;
-    private Lock global = new ReentrantLock();
-    private Lock storage_lock = new ReentrantLock();
-    private Lock count = new ReentrantLock();
+    private Lock global = new ReentrantLock(); //Global lock (tickets)
+    private Lock storage_lock = new ReentrantLock(); //Storage's lock
+    private Lock count = new ReentrantLock(); //Count lock
     private Condition condition = count.newCondition();
 
     /**
@@ -61,8 +66,7 @@ public class TicketManager {
                     heldTickets.take(); //no longer held
                 }
                 if((System.currentTimeMillis()-ticket.getBuyingTime())>expireTimeMs){
-                    System.out.println("Held Ticket is expired");
-                    cancel(heldTickets.take());
+                    cancel(heldTickets.take()); //expired
                 }
             }catch(TicketManagerException|InterruptedException e){
                 throw new IllegalStateException();
@@ -72,12 +76,12 @@ public class TicketManager {
         long period = (expireTimeMs<10000) ? expireTimeMs/10 : 1000;
         timer.scheduleAtFixedRate(resetTask, expireTimeMs, period, TimeUnit.MILLISECONDS);
 
-        availableTickets=0;
+        availableTickets=new AtomicInteger();
         unBoughtTickets=0;
         for(Ticket tik : storage.getTickets()){
             tickets.put(tik.getId(), tik);
             if(tik.getStatus()==TicketStatusCode.HELD || tik.getStatus()==TicketStatusCode.AVAILABLE){
-                availableTickets++;
+                availableTickets.incrementAndGet();
             }
             if(tik.getStatus()!=TicketStatusCode.BOUGHT){
                 unBoughtTickets++;
@@ -120,7 +124,7 @@ public class TicketManager {
      * @return Count of available tickets.
      */
     public int availableCount() {
-        return availableTickets;
+        return availableTickets.get();
     }
 
     /**
@@ -252,14 +256,10 @@ public class TicketManager {
                 global.unlock();
             }
 
+            availableTickets.decrementAndGet();
             update(ticket);
 
-            count.lock();
-            try {
-                availableTickets--;
-            }finally {
-                count.unlock();
-            }
+
         }
 
         Future<String> future = executor.submit(new BuyTask(ticketId, userId));
