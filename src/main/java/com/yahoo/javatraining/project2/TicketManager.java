@@ -59,23 +59,6 @@ public class TicketManager {
         this.heldTickets = new LinkedBlockingQueue<>();
         this.tickets = new HashMap<>();
 
-        Runnable resetTask = () -> {
-            try{
-                Ticket ticket = heldTickets.peek();
-                if(ticket.getStatus() != TicketStatusCode.HELD){
-                    heldTickets.take(); //no longer held
-                }
-                if((System.currentTimeMillis()-ticket.getBuyingTime())>expireTimeMs){
-                    cancel(heldTickets.take()); //expired
-                }
-            }catch(TicketManagerException|InterruptedException e){
-                throw new IllegalStateException();
-            }
-        };
-
-        long period = (expireTimeMs<10000) ? expireTimeMs/10 : 1000;
-        timer.scheduleAtFixedRate(resetTask, expireTimeMs, period, TimeUnit.MILLISECONDS);
-
         availableTickets=new AtomicInteger();
         unBoughtTickets=0;
         for(Ticket tik : storage.getTickets()){
@@ -97,6 +80,8 @@ public class TicketManager {
                 });
             }
         }
+        long period = (expireTimeMs*1000)/tickets.size();
+        timer.scheduleAtFixedRate(new ResetTask(expireTimeMs), period, period , TimeUnit.MICROSECONDS);
     }
 
     /**
@@ -208,6 +193,7 @@ public class TicketManager {
         try {
             ticket.setStatus(TicketStatusCode.AVAILABLE);
             ticket.setHoldTransId(null);
+            ticket.setHoldTime(0);
             ticket.setUserId(null);
         }finally{
             global.unlock();
@@ -252,6 +238,7 @@ public class TicketManager {
             global.lock();
             try{
                 ticket.setStatus(TicketStatusCode.BUYING);
+                ticket.setBuyingTime(System.currentTimeMillis());
             }finally{
                 global.unlock();
             }
@@ -348,6 +335,31 @@ public class TicketManager {
                 catch (IllegalStateException e) {
                     Thread.sleep(5000);
                 }
+            }
+        }
+    }
+
+    private class ResetTask implements Runnable{
+
+        long expireTimeMs;
+
+        public ResetTask(long expireTimeMs){
+            this.expireTimeMs = expireTimeMs;
+        }
+
+        public void run() {
+            try{
+                Ticket ticket = heldTickets.peek();
+                if(ticket.getStatus() != TicketStatusCode.HELD){
+                    heldTickets.take(); //no longer held
+                }
+                //System.out.println(System.currentTimeMillis() + "-" + ticket.getHoldTime());
+                System.out.println(System.currentTimeMillis()-ticket.getHoldTime());
+                if((System.currentTimeMillis()-ticket.getHoldTime())>expireTimeMs){
+                    cancel(heldTickets.take()); //expired
+                }
+            }catch(TicketManagerException|InterruptedException e){
+                throw new IllegalStateException();
             }
         }
     }
